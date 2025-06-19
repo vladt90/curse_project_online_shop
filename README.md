@@ -1,1 +1,0 @@
-# curse_project_online_shop
