@@ -75,7 +75,7 @@ public class ProductDAOImpl implements ProductDAO {
             
             try (ResultSet generatedKeys = statement.getGeneratedKeys()) {
                 if (generatedKeys.next()) {
-                    product.setProductId(generatedKeys.getInt(1));
+                    product.setId(generatedKeys.getInt(1));
                 } else {
                     throw new SQLException("Creating product failed, no ID obtained.");
                 }
@@ -100,7 +100,7 @@ public class ProductDAOImpl implements ProductDAO {
             statement.setDouble(2, product.getPrice());
             statement.setString(3, product.getUnit());
             statement.setInt(4, product.getStockQuantity());
-            statement.setInt(5, product.getProductId());
+            statement.setInt(5, product.getId());
             
             int affectedRows = statement.executeUpdate();
             
@@ -197,7 +197,7 @@ public class ProductDAOImpl implements ProductDAO {
         Product product = new Product(
             resultSet.getInt("product_id"),
             resultSet.getString("name"),
-            resultSet.getDouble("price"),
+            new java.math.BigDecimal(resultSet.getString("price")),
             resultSet.getString("unit"),
             resultSet.getInt("stock_quantity")
         );

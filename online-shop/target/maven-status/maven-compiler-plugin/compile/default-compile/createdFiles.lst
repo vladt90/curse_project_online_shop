@@ -1,0 +1,17 @@
+com\example\onlineshop\controller\AdminDashboardController.class
+com\example\onlineshop\dao\DAO.class
+com\example\onlineshop\model\User.class
+com\example\onlineshop\model\OrderItem.class
+com\example\onlineshop\JavaFXApp.class
+com\example\onlineshop\service\OrderService.class
+com\example\onlineshop\util\DatabaseManager.class
+com\example\onlineshop\model\Role.class
+com\example\onlineshop\service\UserService.class
+com\example\onlineshop\controller\FXController.class
+com\example\onlineshop\controller\LoginController.class
+com\example\onlineshop\dao\ProductDAO.class
+com\example\onlineshop\dao\impl\OrderDAOImpl.class
+com\example\onlineshop\model\Order.class
+com\example\onlineshop\service\ProductService.class
+com\example\onlineshop\model\Product.class
+com\example\onlineshop\dao\OrderDAO.class

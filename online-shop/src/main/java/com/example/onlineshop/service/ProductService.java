@@ -12,4 +12,13 @@ public interface ProductService {
     Product updateProduct(Product product);
     boolean deleteProduct(int id);
     boolean updateStock(int productId, int quantityChange);
+    
+    // Методы-алиасы для совместимости с контроллерами
+    default List<Product> getAllProducts() {
+        return findAll();
+    }
+    
+    default List<Product> searchProducts(String query) {
+        return findByName(query);
+    }
 }

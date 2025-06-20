@@ -61,6 +61,19 @@ public class DatabaseManager {
         }
     }
     
+    /**
+     * Перезагружает настройки подключения из файла конфигурации.
+     * Полезно, когда настройки могли измениться во время выполнения программы.
+     */
+    public void reloadConfig() {
+        // Закрываем текущее соединение, если оно открыто
+        closeConnection();
+        
+        // Загружаем настройки заново
+        loadConfig();
+        
+        System.out.println("Настройки подключения к базе данных перезагружены.");
+    }
 
     public static synchronized DatabaseManager getInstance() {
         if (instance == null) {

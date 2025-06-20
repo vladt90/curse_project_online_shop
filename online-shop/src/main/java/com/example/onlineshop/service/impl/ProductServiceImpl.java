@@ -62,10 +62,10 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     public Product updateProduct(Product product) {
-        Product existingProduct = productDAO.findById(product.getProductId());
+        Product existingProduct = productDAO.findById(product.getId());
         
         if (existingProduct == null) {
-            System.err.println("Товар с ID " + product.getProductId() + " не найден");
+            System.err.println("Товар с ID " + product.getId() + " не найден");
             return null;
         }
         

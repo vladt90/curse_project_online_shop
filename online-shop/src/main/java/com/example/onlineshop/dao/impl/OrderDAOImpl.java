@@ -1,234 +1,320 @@
 package com.example.onlineshop.dao.impl;
 
 import com.example.onlineshop.dao.OrderDAO;
+import com.example.onlineshop.dao.ProductDAO;
 import com.example.onlineshop.model.Order;
+import com.example.onlineshop.model.OrderItem;
+import com.example.onlineshop.model.Product;
 import com.example.onlineshop.util.DatabaseManager;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
-import java.sql.Timestamp;
-import java.sql.Date;
-import java.time.LocalDate;
+import java.math.BigDecimal;
+import java.sql.*;
 import java.time.LocalDateTime;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 
 public class OrderDAOImpl implements OrderDAO {
 
+    private final DatabaseManager dbManager;
+    private final ProductDAO productDAO;
+
+    public OrderDAOImpl() {
+        this.dbManager = DatabaseManager.getInstance();
+        this.productDAO = new ProductDAOImpl();
+    }
+
     @Override
-    public Order findById(Integer id) {
-        String sql = "SELECT * FROM orders WHERE order_id = ?";
+    public Order createOrder(Order order) {
+        String sql = "INSERT INTO orders (user_id, order_date, status, total_price) VALUES (?, ?, ?, ?)";
         
-        try (Connection connection = DatabaseManager.getInstance().getConnection();
-             PreparedStatement statement = connection.prepareStatement(sql)) {
+        try (Connection conn = dbManager.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             
-            statement.setInt(1, id);
-            ResultSet resultSet = statement.executeQuery();
+            stmt.setInt(1, order.getUserId());
+            stmt.setTimestamp(2, Timestamp.valueOf(order.getOrderDate()));
+            stmt.setString(3, order.getStatus());
+            stmt.setDouble(4, order.getTotalPrice());
             
-            if (resultSet.next()) {
-                return mapResultSetToOrder(resultSet);
+            int affectedRows = stmt.executeUpdate();
+            
+            if (affectedRows > 0) {
+                try (ResultSet generatedKeys = stmt.getGeneratedKeys()) {
+                    if (generatedKeys.next()) {
+                        order.setId(generatedKeys.getInt(1));
+                        return order;
+                    }
+                }
             }
-            
         } catch (SQLException e) {
-            System.err.println("Ошибка при поиске заказа по ID: " + e.getMessage());
+            System.err.println("Error creating order: " + e.getMessage());
+            e.printStackTrace();
         }
         
         return null;
     }
 
     @Override
-    public List<Order> findAll() {
-        List<Order> orders = new ArrayList<>();
-        String sql = "SELECT * FROM orders";
+    public boolean updateOrder(Order order) {
+        String sql = "UPDATE orders SET user_id = ?, order_date = ?, status = ?, total_price = ? WHERE id = ?";
         
-        try (Connection connection = DatabaseManager.getInstance().getConnection();
-             Statement statement = connection.createStatement();
-             ResultSet resultSet = statement.executeQuery(sql)) {
+        try (Connection conn = dbManager.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
             
-            while (resultSet.next()) {
-                orders.add(mapResultSetToOrder(resultSet));
-            }
+            stmt.setInt(1, order.getUserId());
+            stmt.setTimestamp(2, Timestamp.valueOf(order.getOrderDate()));
+            stmt.setString(3, order.getStatus());
+            stmt.setDouble(4, order.getTotalPrice());
+            stmt.setInt(5, order.getId());
+            
+            int affectedRows = stmt.executeUpdate();
+            return affectedRows > 0;
             
         } catch (SQLException e) {
-            System.err.println("Ошибка при получении всех заказов: " + e.getMessage());
+            System.err.println("Error updating order: " + e.getMessage());
+            e.printStackTrace();
         }
         
-        return orders;
+        return false;
     }
 
     @Override
-    public Order save(Order order) {
-        String sql = "INSERT INTO orders (user_id, total_price, order_date, delivery_date, discount_applied) " +
-                     "VALUES (?, ?, ?, ?, ?)";
+    public boolean deleteOrder(int orderId) {
+        // Сначала удаляем все элементы заказа
+        String deleteItemsSql = "DELETE FROM order_items WHERE order_id = ?";
         
-        try (Connection connection = DatabaseManager.getInstance().getConnection();
-             PreparedStatement statement = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+        try (Connection conn = dbManager.getConnection();
+             PreparedStatement deleteItemsStmt = conn.prepareStatement(deleteItemsSql)) {
             
-            statement.setInt(1, order.getUserId());
-            statement.setDouble(2, order.getTotalPrice());
-            statement.setTimestamp(3, Timestamp.valueOf(order.getOrderDate()));
+            deleteItemsStmt.setInt(1, orderId);
+            deleteItemsStmt.executeUpdate();
             
-            if (order.getDeliveryDate() != null) {
-                statement.setDate(4, Date.valueOf(order.getDeliveryDate()));
-            } else {
-                statement.setNull(4, java.sql.Types.DATE);
-            }
+        } catch (SQLException e) {
+            System.err.println("Error deleting order items: " + e.getMessage());
+            e.printStackTrace();
+            return false;
+        }
+        
+        // Затем удаляем сам заказ
+        String deleteOrderSql = "DELETE FROM orders WHERE id = ?";
+        
+        try (Connection conn = dbManager.getConnection();
+             PreparedStatement deleteOrderStmt = conn.prepareStatement(deleteOrderSql)) {
             
-            statement.setDouble(5, order.getDiscountApplied());
+            deleteOrderStmt.setInt(1, orderId);
+            int affectedRows = deleteOrderStmt.executeUpdate();
             
-            int affectedRows = statement.executeUpdate();
+            return affectedRows > 0;
             
-            if (affectedRows == 0) {
-                throw new SQLException("Creating order failed, no rows affected.");
-            }
+        } catch (SQLException e) {
+            System.err.println("Error deleting order: " + e.getMessage());
+            e.printStackTrace();
+        }
+        
+        return false;
+    }
+
+    @Override
+    public Order getOrderById(int orderId) {
+        String sql = "SELECT * FROM orders WHERE id = ?";
+        
+        try (Connection conn = dbManager.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
             
-            try (ResultSet generatedKeys = statement.getGeneratedKeys()) {
-                if (generatedKeys.next()) {
-                    order.setOrderId(generatedKeys.getInt(1));
-                } else {
-                    throw new SQLException("Creating order failed, no ID obtained.");
+            stmt.setInt(1, orderId);
+            
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    return extractOrder(rs);
                 }
             }
             
         } catch (SQLException e) {
-            System.err.println("Ошибка при сохранении заказа: " + e.getMessage());
-            return null;
+            System.err.println("Error getting order: " + e.getMessage());
+            e.printStackTrace();
         }
         
-        return order;
+        return null;
     }
 
     @Override
-    public Order update(Order order) {
-        String sql = "UPDATE orders SET user_id = ?, total_price = ?, order_date = ?, " +
-                     "delivery_date = ?, discount_applied = ? WHERE order_id = ?";
-        
-        try (Connection connection = DatabaseManager.getInstance().getConnection();
-             PreparedStatement statement = connection.prepareStatement(sql)) {
-            
-            statement.setInt(1, order.getUserId());
-            statement.setDouble(2, order.getTotalPrice());
-            statement.setTimestamp(3, Timestamp.valueOf(order.getOrderDate()));
-            
-            if (order.getDeliveryDate() != null) {
-                statement.setDate(4, Date.valueOf(order.getDeliveryDate()));
-            } else {
-                statement.setNull(4, java.sql.Types.DATE);
-            }
-            
-            statement.setDouble(5, order.getDiscountApplied());
-            statement.setInt(6, order.getOrderId());
-            
-            int affectedRows = statement.executeUpdate();
-            
-            if (affectedRows == 0) {
-                throw new SQLException("Updating order failed, no rows affected.");
-            }
-            
-        } catch (SQLException e) {
-            System.err.println("Ошибка при обновлении заказа: " + e.getMessage());
-            return null;
-        }
-        
-        return order;
-    }
-
-    @Override
-    public boolean delete(Integer id) {
-        String sql = "DELETE FROM orders WHERE order_id = ?";
-        
-        try (Connection connection = DatabaseManager.getInstance().getConnection();
-             PreparedStatement statement = connection.prepareStatement(sql)) {
-            
-            statement.setInt(1, id);
-            
-            return statement.executeUpdate() > 0;
-            
-        } catch (SQLException e) {
-            System.err.println("Ошибка при удалении заказа: " + e.getMessage());
-            return false;
-        }
-    }
-
-    @Override
-    public List<Order> findByUserId(int userId) {
+    public List<Order> getAllOrders() {
         List<Order> orders = new ArrayList<>();
-        String sql = "SELECT * FROM orders WHERE user_id = ?";
+        String sql = "SELECT * FROM orders ORDER BY order_date DESC";
         
-        try (Connection connection = DatabaseManager.getInstance().getConnection();
-             PreparedStatement statement = connection.prepareStatement(sql)) {
+        try (Connection conn = dbManager.getConnection();
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(sql)) {
             
-            statement.setInt(1, userId);
-            ResultSet resultSet = statement.executeQuery();
-            
-            while (resultSet.next()) {
-                orders.add(mapResultSetToOrder(resultSet));
+            while (rs.next()) {
+                Order order = extractOrder(rs);
+                orders.add(order);
             }
             
         } catch (SQLException e) {
-            System.err.println("Ошибка при поиске заказов пользователя: " + e.getMessage());
+            System.err.println("Error getting all orders: " + e.getMessage());
+            e.printStackTrace();
         }
         
         return orders;
     }
 
     @Override
-    public List<Order> findByDate(LocalDate date) {
+    public List<Order> getOrdersByUserId(int userId) {
         List<Order> orders = new ArrayList<>();
-        String sql = "SELECT * FROM orders WHERE DATE(order_date) = ?";
+        String sql = "SELECT * FROM orders WHERE user_id = ? ORDER BY order_date DESC";
         
-        try (Connection connection = DatabaseManager.getInstance().getConnection();
-             PreparedStatement statement = connection.prepareStatement(sql)) {
+        try (Connection conn = dbManager.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
             
-            statement.setDate(1, Date.valueOf(date));
-            ResultSet resultSet = statement.executeQuery();
+            stmt.setInt(1, userId);
             
-            while (resultSet.next()) {
-                orders.add(mapResultSetToOrder(resultSet));
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    Order order = extractOrder(rs);
+                    orders.add(order);
+                }
             }
             
         } catch (SQLException e) {
-            System.err.println("Ошибка при поиске заказов по дате: " + e.getMessage());
+            System.err.println("Error getting user orders: " + e.getMessage());
+            e.printStackTrace();
         }
         
         return orders;
     }
 
     @Override
-    public List<Order> findByDateRange(LocalDate startDate, LocalDate endDate) {
-        List<Order> orders = new ArrayList<>();
-        String sql = "SELECT * FROM orders WHERE DATE(order_date) BETWEEN ? AND ?";
+    public boolean updateOrderStatus(int orderId, String status) {
+        String sql = "UPDATE orders SET status = ? WHERE id = ?";
         
-        try (Connection connection = DatabaseManager.getInstance().getConnection();
-             PreparedStatement statement = connection.prepareStatement(sql)) {
+        try (Connection conn = dbManager.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
             
-            statement.setDate(1, Date.valueOf(startDate));
-            statement.setDate(2, Date.valueOf(endDate));
-            ResultSet resultSet = statement.executeQuery();
+            stmt.setString(1, status);
+            stmt.setInt(2, orderId);
             
-            while (resultSet.next()) {
-                orders.add(mapResultSetToOrder(resultSet));
+            int affectedRows = stmt.executeUpdate();
+            return affectedRows > 0;
+            
+        } catch (SQLException e) {
+            System.err.println("Error updating order status: " + e.getMessage());
+            e.printStackTrace();
+        }
+        
+        return false;
+    }
+
+    @Override
+    public List<OrderItem> getOrderItems(int orderId) {
+        List<OrderItem> items = new ArrayList<>();
+        String sql = "SELECT oi.*, p.name, p.description, p.price as current_price, p.stock_quantity, p.unit " +
+                     "FROM order_items oi " +
+                     "JOIN products p ON oi.product_id = p.id " +
+                     "WHERE oi.order_id = ?";
+        
+        try (Connection conn = dbManager.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            
+            stmt.setInt(1, orderId);
+            
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    int id = rs.getInt("id");
+                    int productId = rs.getInt("product_id");
+                    int quantity = rs.getInt("quantity");
+                    double price = rs.getDouble("price_per_unit");
+                    
+                    // Создаем продукт
+                    String name = rs.getString("name");
+                    String description = rs.getString("description");
+                    double currentPrice = rs.getDouble("current_price");
+                    int stockQuantity = rs.getInt("stock_quantity");
+                    String unit = rs.getString("unit");
+                    
+                    Product product = new Product(name, currentPrice, unit, stockQuantity);
+                    product.setId(productId);
+                    product.setDescription(description);
+                    
+                    // Создаем элемент заказа
+                    OrderItem item = new OrderItem();
+                    item.setId(id);
+                    item.setOrderId(orderId);
+                    item.setProductId(productId);
+                    item.setQuantity(quantity);
+                    item.setPricePerUnit(new BigDecimal(String.valueOf(price)));
+                    item.setProduct(product);
+                    
+                    items.add(item);
+                }
             }
             
         } catch (SQLException e) {
-            System.err.println("Ошибка при поиске заказов по диапазону дат: " + e.getMessage());
+            System.err.println("Error getting order items: " + e.getMessage());
+            e.printStackTrace();
         }
         
-        return orders;
+        return items;
     }
-    
-    private Order mapResultSetToOrder(ResultSet resultSet) throws SQLException {
-        Order order = new Order(
-            resultSet.getInt("order_id"),
-            resultSet.getInt("user_id"),
-            resultSet.getDouble("total_price"),
-            resultSet.getTimestamp("order_date").toLocalDateTime(),
-            resultSet.getDate("delivery_date") != null ? resultSet.getDate("delivery_date").toLocalDate() : null,
-            resultSet.getDouble("discount_applied")
-        );
+
+    @Override
+    public boolean addItemToOrder(int orderId, int productId, int quantity, double price) {
+        String sql = "INSERT INTO order_items (order_id, product_id, quantity, price_per_unit) VALUES (?, ?, ?, ?)";
+        
+        try (Connection conn = dbManager.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            
+            stmt.setInt(1, orderId);
+            stmt.setInt(2, productId);
+            stmt.setInt(3, quantity);
+            stmt.setDouble(4, price);
+            
+            int affectedRows = stmt.executeUpdate();
+            return affectedRows > 0;
+            
+        } catch (SQLException e) {
+            System.err.println("Error adding item to order: " + e.getMessage());
+            e.printStackTrace();
+        }
+        
+        return false;
+    }
+
+    @Override
+    public boolean removeItemFromOrder(int orderItemId) {
+        String sql = "DELETE FROM order_items WHERE id = ?";
+        
+        try (Connection conn = dbManager.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            
+            stmt.setInt(1, orderItemId);
+            
+            int affectedRows = stmt.executeUpdate();
+            return affectedRows > 0;
+            
+        } catch (SQLException e) {
+            System.err.println("Error removing item from order: " + e.getMessage());
+            e.printStackTrace();
+        }
+        
+        return false;
+    }
+
+    private Order extractOrder(ResultSet rs) throws SQLException {
+        int id = rs.getInt("id");
+        int userId = rs.getInt("user_id");
+        Timestamp orderDateTimestamp = rs.getTimestamp("order_date");
+        LocalDateTime orderDate = orderDateTimestamp.toLocalDateTime();
+        String status = rs.getString("status");
+        double totalPrice = rs.getDouble("total_price");
+        
+        Order order = new Order();
+        order.setId(id);
+        order.setUserId(userId);
+        order.setOrderDate(orderDate);
+        order.setStatus(status);
+        order.setTotalCost(new BigDecimal(String.valueOf(totalPrice)));
         
         return order;
     }

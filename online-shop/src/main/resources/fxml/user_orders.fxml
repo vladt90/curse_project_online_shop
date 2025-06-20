@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.TableColumn?>
+<?import javafx.scene.control.TableView?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.text.Font?>
+
+<BorderPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="600.0" prefWidth="800.0" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.example.onlineshop.controller.UserOrdersController">
+   <top>
+      <HBox alignment="CENTER_LEFT" spacing="20.0" style="-fx-background-color: #e0e0e0;" BorderPane.alignment="CENTER">
+         <children>
+            <Button fx:id="backButton" onAction="#handleBack" text="Назад" />
+            <Label text="Мои заказы" textFill="#2e2e2e">
+               <font>
+                  <Font name="System Bold" size="18.0" />
+               </font>
+            </Label>
+         </children>
+         <padding>
+            <Insets bottom="10.0" left="20.0" right="20.0" top="10.0" />
+         </padding>
+      </HBox>
+   </top>
+   <center>
+      <VBox spacing="10.0" BorderPane.alignment="CENTER">
+         <children>
+            <TableView fx:id="ordersTable" VBox.vgrow="ALWAYS">
+              <columns>
+                <TableColumn fx:id="orderIdColumn" prefWidth="75.0" text="№ заказа" />
+                <TableColumn fx:id="orderDateColumn" prefWidth="150.0" text="Дата" />
+                  <TableColumn fx:id="orderStatusColumn" prefWidth="150.0" text="Статус" />
+                  <TableColumn fx:id="orderTotalColumn" prefWidth="100.0" text="Сумма" />
+              </columns>
+            </TableView>
+            <VBox fx:id="orderDetailsBox" spacing="10.0">
+               <children>
+                  <Label fx:id="orderDetailsLabel" text="Детали заказа #123 от 01.01.2023">
+                     <font>
+                        <Font name="System Bold" size="14.0" />
+                     </font>
+                  </Label>
+                  <TableView fx:id="orderItemsTable" prefHeight="200.0" prefWidth="200.0">
+                    <columns>
+                      <TableColumn fx:id="itemNameColumn" prefWidth="300.0" text="Товар" />
+                      <TableColumn fx:id="itemQuantityColumn" prefWidth="75.0" text="Кол-во" />
+                        <TableColumn fx:id="itemPriceColumn" prefWidth="100.0" text="Цена" />
+                        <TableColumn fx:id="itemTotalColumn" prefWidth="100.0" text="Сумма" />
+                    </columns>
+                  </TableView>
+               </children>
+            </VBox>
+         </children>
+         <padding>
+            <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
+         </padding>
+      </VBox>
+   </center>
+</BorderPane> 

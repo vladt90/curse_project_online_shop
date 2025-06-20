@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.text.Font?>
+
+<BorderPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="500.0" prefWidth="800.0" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.example.onlineshop.controller.UserDashboardController">
+   <top>
+      <HBox alignment="CENTER_LEFT" spacing="20.0" style="-fx-background-color: #e0e0e0;" BorderPane.alignment="CENTER">
+         <children>
+            <Label text="Интернет-магазин" textFill="#2e2e2e">
+               <font>
+                  <Font name="System Bold" size="18.0" />
+               </font>
+            </Label>
+            <HBox alignment="CENTER_RIGHT" HBox.hgrow="ALWAYS">
+               <children>
+                  <Button fx:id="logoutButton" onAction="#handleLogout" text="Выйти" />
+               </children>
+            </HBox>
+         </children>
+         <padding>
+            <Insets bottom="10.0" left="20.0" right="20.0" top="10.0" />
+         </padding>
+      </HBox>
+   </top>
+   <center>
+      <VBox alignment="TOP_CENTER" spacing="20.0" BorderPane.alignment="CENTER">
+         <children>
+            <Label fx:id="welcomeLabel" text="Добро пожаловать, Имя Фамилия!">
+               <font>
+                  <Font size="24.0" />
+               </font>
+            </Label>
+            <Label fx:id="userInfoLabel" text="Email: example@mail.ru, Телефон: +7 (999) 123-45-67" />
+            <Label fx:id="discountLabel" text="Ваша персональная скидка: 0%" textFill="#0044ff">
+               <font>
+                  <Font name="System Bold" size="14.0" />
+               </font>
+            </Label>
+            <HBox alignment="CENTER" spacing="20.0">
+               <children>
+                  <Button fx:id="catalogButton" onAction="#handleViewCatalog" prefHeight="100.0" prefWidth="150.0" text="Каталог товаров">
+                     <font>
+                        <Font size="14.0" />
+                     </font>
+                  </Button>
+                  <Button fx:id="ordersButton" onAction="#handleViewOrders" prefHeight="100.0" prefWidth="150.0" text="Мои заказы">
+                     <font>
+                        <Font size="14.0" />
+                     </font>
+                  </Button>
+                  <Button fx:id="profileButton" onAction="#handleEditProfile" prefHeight="100.0" prefWidth="150.0" text="Редактировать профиль">
+                     <font>
+                        <Font size="14.0" />
+                     </font>
+                  </Button>
+               </children>
+               <padding>
+                  <Insets top="20.0" />
+               </padding>
+            </HBox>
+         </children>
+         <padding>
+            <Insets bottom="20.0" left="20.0" right="20.0" top="20.0" />
+         </padding>
+      </VBox>
+   </center>
+</BorderPane> 

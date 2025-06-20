@@ -57,21 +57,21 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public User updateUser(User user) {
-        User existingUser = userDAO.findById(user.getUserId());
+        User existingUser = userDAO.findById(user.getId());
         
         if (existingUser == null) {
-            System.err.println("Пользователь с ID " + user.getUserId() + " не найден");
+            System.err.println("Пользователь с ID " + user.getId() + " не найден");
             return null;
         }
         
         User loginCheck = userDAO.findByLogin(user.getLogin());
-        if (loginCheck != null && loginCheck.getUserId() != user.getUserId()) {
+        if (loginCheck != null && loginCheck.getId() != user.getId()) {
             System.err.println("Пользователь с таким логином уже существует");
             return null;
         }
         
         User emailCheck = userDAO.findByEmail(user.getEmail());
-        if (emailCheck != null && emailCheck.getUserId() != user.getUserId()) {
+        if (emailCheck != null && emailCheck.getId() != user.getId()) {
             System.err.println("Пользователь с таким email уже существует");
             return null;
         }
@@ -100,7 +100,7 @@ public class UserServiceImpl implements UserService {
             return false;
         }
         
-        return user.getPassword().equals(password);
+        return user.getPasswordHash().equals(password);
     }
 
     @Override

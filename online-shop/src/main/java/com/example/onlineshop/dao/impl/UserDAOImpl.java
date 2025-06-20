@@ -57,8 +57,8 @@ public class UserDAOImpl implements UserDAO {
 
     @Override
     public User save(User user) {
-        String sql = "INSERT INTO users (role_id, first_name, last_name, middle_name, login, password, " +
-                     "email, phone, is_regular_customer, discount, total_purchases) " +
+        String sql = "INSERT INTO users (role_id, first_name, last_name, patronymic, login, password_hash, " +
+                     "email, phone, status, discount, total_purchases) " +
                      "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         
         try (Connection connection = DatabaseManager.getInstance().getConnection();
@@ -67,13 +67,13 @@ public class UserDAOImpl implements UserDAO {
             statement.setInt(1, user.getRoleId());
             statement.setString(2, user.getFirstName());
             statement.setString(3, user.getLastName());
-            statement.setString(4, user.getMiddleName());
+            statement.setString(4, user.getPatronymic());
             statement.setString(5, user.getLogin());
-            statement.setString(6, user.getPassword());
+            statement.setString(6, user.getPasswordHash());
             statement.setString(7, user.getEmail());
             statement.setString(8, user.getPhone());
-            statement.setBoolean(9, user.isRegularCustomer());
-            statement.setDouble(10, user.getDiscount());
+            statement.setString(9, user.getStatus());
+            statement.setBigDecimal(10, user.getDiscount());
             statement.setDouble(11, user.getTotalPurchases());
             
             int affectedRows = statement.executeUpdate();
@@ -84,7 +84,7 @@ public class UserDAOImpl implements UserDAO {
             
             try (ResultSet generatedKeys = statement.getGeneratedKeys()) {
                 if (generatedKeys.next()) {
-                    user.setUserId(generatedKeys.getInt(1));
+                    user.setId(generatedKeys.getInt(1));
                 } else {
                     throw new SQLException("Creating user failed, no ID obtained.");
                 }
@@ -100,9 +100,9 @@ public class UserDAOImpl implements UserDAO {
 
     @Override
     public User update(User user) {
-        String sql = "UPDATE users SET role_id = ?, first_name = ?, last_name = ?, middle_name = ?, " +
-                     "login = ?, password = ?, email = ?, phone = ?, is_regular_customer = ?, " +
-                     "discount = ?, total_purchases = ? WHERE user_id = ?";
+        String sql = "UPDATE users SET role_id = ?, first_name = ?, last_name = ?, patronymic = ?, " +
+                     "login = ?, password_hash = ?, email = ?, phone = ?, status = ?, " +
+                     "discount = ?, total_purchases = ? WHERE id = ?";
         
         try (Connection connection = DatabaseManager.getInstance().getConnection();
              PreparedStatement statement = connection.prepareStatement(sql)) {
@@ -110,15 +110,15 @@ public class UserDAOImpl implements UserDAO {
             statement.setInt(1, user.getRoleId());
             statement.setString(2, user.getFirstName());
             statement.setString(3, user.getLastName());
-            statement.setString(4, user.getMiddleName());
+            statement.setString(4, user.getPatronymic());
             statement.setString(5, user.getLogin());
-            statement.setString(6, user.getPassword());
+            statement.setString(6, user.getPasswordHash());
             statement.setString(7, user.getEmail());
             statement.setString(8, user.getPhone());
-            statement.setBoolean(9, user.isRegularCustomer());
-            statement.setDouble(10, user.getDiscount());
+            statement.setString(9, user.getStatus());
+            statement.setBigDecimal(10, user.getDiscount());
             statement.setDouble(11, user.getTotalPurchases());
-            statement.setInt(12, user.getUserId());
+            statement.setInt(12, user.getId());
             
             int affectedRows = statement.executeUpdate();
             
@@ -136,7 +136,7 @@ public class UserDAOImpl implements UserDAO {
 
     @Override
     public boolean delete(Integer id) {
-        String sql = "DELETE FROM users WHERE user_id = ?";
+        String sql = "DELETE FROM users WHERE id = ?";
         
         try (Connection connection = DatabaseManager.getInstance().getConnection();
              PreparedStatement statement = connection.prepareStatement(sql)) {
@@ -217,7 +217,7 @@ public class UserDAOImpl implements UserDAO {
 
     @Override
     public boolean updateTotalPurchases(int userId, double purchaseAmount) {
-        String sql = "UPDATE users SET total_purchases = total_purchases + ? WHERE user_id = ?";
+        String sql = "UPDATE users SET total_purchases = total_purchases + ? WHERE id = ?";
         
         try (Connection connection = DatabaseManager.getInstance().getConnection();
              PreparedStatement statement = connection.prepareStatement(sql)) {
@@ -235,8 +235,8 @@ public class UserDAOImpl implements UserDAO {
 
     @Override
     public boolean updateCustomerStatus(int userId) {
-        String sql = "UPDATE users SET is_regular_customer = true, discount = 2.0 " +
-                     "WHERE user_id = ? AND total_purchases > 5000 AND is_regular_customer = false";
+        String sql = "UPDATE users SET status = 'постоянный', discount = 2.0 " +
+                     "WHERE id = ? AND total_purchases > 5000 AND status != 'постоянный'";
         
         try (Connection connection = DatabaseManager.getInstance().getConnection();
              PreparedStatement statement = connection.prepareStatement(sql)) {
@@ -253,19 +253,19 @@ public class UserDAOImpl implements UserDAO {
     
     private User mapResultSetToUser(ResultSet resultSet) throws SQLException {
         User user = new User(
-            resultSet.getInt("user_id"),
+            resultSet.getInt("id"),
             resultSet.getInt("role_id"),
-            resultSet.getString("first_name"),
-            resultSet.getString("last_name"),
-            resultSet.getString("middle_name"),
             resultSet.getString("login"),
-            resultSet.getString("password"),
+            resultSet.getString("password_hash"),
+            resultSet.getString("last_name"),
+            resultSet.getString("first_name"),
+            resultSet.getString("patronymic"),
             resultSet.getString("email"),
             resultSet.getString("phone"),
-            resultSet.getBoolean("is_regular_customer"),
-            resultSet.getDouble("discount"),
-            resultSet.getDouble("total_purchases")
+            resultSet.getString("status"),
+            resultSet.getBigDecimal("discount")
         );
+        user.setTotalPurchases(resultSet.getDouble("total_purchases"));
         
         return user;
     }

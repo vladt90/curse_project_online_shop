@@ -4,6 +4,7 @@ import com.example.onlineshop.dao.OrderItemDAO;
 import com.example.onlineshop.model.OrderItem;
 import com.example.onlineshop.util.DatabaseManager;
 
+import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -16,7 +17,7 @@ public class OrderItemDAOImpl implements OrderItemDAO {
 
     @Override
     public OrderItem findById(Integer id) {
-        String sql = "SELECT * FROM order_items WHERE order_item_id = ?";
+        String sql = "SELECT * FROM order_items WHERE id = ?";
         
         try (Connection connection = DatabaseManager.getInstance().getConnection();
              PreparedStatement statement = connection.prepareStatement(sql)) {
@@ -57,7 +58,7 @@ public class OrderItemDAOImpl implements OrderItemDAO {
 
     @Override
     public OrderItem save(OrderItem orderItem) {
-        String sql = "INSERT INTO order_items (order_id, product_id, quantity, item_price) VALUES (?, ?, ?, ?)";
+        String sql = "INSERT INTO order_items (order_id, product_id, quantity, price_per_unit) VALUES (?, ?, ?, ?)";
         
         try (Connection connection = DatabaseManager.getInstance().getConnection();
              PreparedStatement statement = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
@@ -65,7 +66,7 @@ public class OrderItemDAOImpl implements OrderItemDAO {
             statement.setInt(1, orderItem.getOrderId());
             statement.setInt(2, orderItem.getProductId());
             statement.setInt(3, orderItem.getQuantity());
-            statement.setDouble(4, orderItem.getItemPrice());
+            statement.setDouble(4, orderItem.getPrice());
             
             int affectedRows = statement.executeUpdate();
             
@@ -75,7 +76,7 @@ public class OrderItemDAOImpl implements OrderItemDAO {
             
             try (ResultSet generatedKeys = statement.getGeneratedKeys()) {
                 if (generatedKeys.next()) {
-                    orderItem.setOrderItemId(generatedKeys.getInt(1));
+                    orderItem.setId(generatedKeys.getInt(1));
                 } else {
                     throw new SQLException("Creating order item failed, no ID obtained.");
                 }
@@ -91,8 +92,8 @@ public class OrderItemDAOImpl implements OrderItemDAO {
 
     @Override
     public OrderItem update(OrderItem orderItem) {
-        String sql = "UPDATE order_items SET order_id = ?, product_id = ?, quantity = ?, item_price = ? " +
-                     "WHERE order_item_id = ?";
+        String sql = "UPDATE order_items SET order_id = ?, product_id = ?, quantity = ?, price_per_unit = ? " +
+                     "WHERE id = ?";
         
         try (Connection connection = DatabaseManager.getInstance().getConnection();
              PreparedStatement statement = connection.prepareStatement(sql)) {
@@ -100,8 +101,8 @@ public class OrderItemDAOImpl implements OrderItemDAO {
             statement.setInt(1, orderItem.getOrderId());
             statement.setInt(2, orderItem.getProductId());
             statement.setInt(3, orderItem.getQuantity());
-            statement.setDouble(4, orderItem.getItemPrice());
-            statement.setInt(5, orderItem.getOrderItemId());
+            statement.setDouble(4, orderItem.getPrice());
+            statement.setInt(5, orderItem.getId());
             
             int affectedRows = statement.executeUpdate();
             
@@ -119,7 +120,7 @@ public class OrderItemDAOImpl implements OrderItemDAO {
 
     @Override
     public boolean delete(Integer id) {
-        String sql = "DELETE FROM order_items WHERE order_item_id = ?";
+        String sql = "DELETE FROM order_items WHERE id = ?";
         
         try (Connection connection = DatabaseManager.getInstance().getConnection();
              PreparedStatement statement = connection.prepareStatement(sql)) {
@@ -179,13 +180,12 @@ public class OrderItemDAOImpl implements OrderItemDAO {
     }
     
     private OrderItem mapResultSetToOrderItem(ResultSet resultSet) throws SQLException {
-        OrderItem orderItem = new OrderItem(
-            resultSet.getInt("order_item_id"),
-            resultSet.getInt("order_id"),
-            resultSet.getInt("product_id"),
-            resultSet.getInt("quantity"),
-            resultSet.getDouble("item_price")
-        );
+        OrderItem orderItem = new OrderItem();
+        orderItem.setId(resultSet.getInt("id"));
+        orderItem.setOrderId(resultSet.getInt("order_id"));
+        orderItem.setProductId(resultSet.getInt("product_id"));
+        orderItem.setQuantity(resultSet.getInt("quantity"));
+        orderItem.setPricePerUnit(new BigDecimal(String.valueOf(resultSet.getDouble("price_per_unit"))));
         
         return orderItem;
     }
